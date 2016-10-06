@@ -8,6 +8,11 @@
 
 import UIKit
 
+
+// results that exceed length 7, I tried to account for this in line 116-119
+// ask about 4b, 4c
+
+
 class ViewController: UIViewController {
     // MARK: Width and Height of Screen for Layout
     var w: CGFloat!
@@ -21,9 +26,14 @@ class ViewController: UIViewController {
     
     // TODO: This looks like a good place to add some data structures.
     //       One data structure is initialized below for reference.
-    var someDataStructure: [String] = [""]
+    var operandA: [String] = []
+    var operandB: [String] = []
+    var solutionDisplay: [String] = []
+    var operationPressed = false
+    var operation = ""
+    var equalPressed = false
+    var useDouble = false
     
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view = UIView(frame: UIScreen.main.bounds)
@@ -45,52 +55,220 @@ class ViewController: UIViewController {
     
     // TODO: A method to update your data structure(s) would be nice.
     //       Modify this one or create your own.
-    func updateSomeDataStructure(_ content: String) {
-        print("Update me like one of those PCs")
+    func addCharacters(content: String, _ digitArray: [String]) {
+        var digitArray = digitArray
+        if digitArray.count < 8 {
+            digitArray.append(content)
+            print(digitArray)
+        }
     }
+    
+    
+    func flipSign() {
+        if !operationPressed && operandA.contains("-") {
+            operandA.remove(at: 0)
+            updateOperandResultLabel(operandA)
+        } else if !operationPressed {
+            operandA.insert("-", at: 0)
+            updateOperandResultLabel(operandA)
+        }
+        
+        if operationPressed && operandB.contains("-") {
+            operandB.remove(at: 0)
+            updateOperandResultLabel(operandB)
+        } else if operationPressed {
+            operandB.insert("-", at: 0)
+            updateOperandResultLabel(operandB)
+        }
+    }
+    
+    
+    func clear() {
+        operandA = []
+        operandB = []
+    }
+    
+    func makeStringNumber (_ operand: [String] ) -> String {
+        var number = ""
+        for digit in operand {
+            number = number + digit
+        }
+        return number
+    }
+    
+    func makeSolutionArray (_ number: String) -> [String] {
+        solutionDisplay = number.characters.map {String($0)}
+        return solutionDisplay
+    }
+
     
     // TODO: Ensure that resultLabel gets updated.
     //       Modify this one or create your own.
     func updateResultLabel(_ content: String) {
-        print("Update me like one of those PCs")
+//        if content.characters.count > 8 {
+//            return
+//        } else {
+//         resultLabel.text = content
+//        }
+        resultLabel.text = content
     }
     
-    
-    // TODO: A calculate method with no parameters, scary!
-    //       Modify this one or create your own.
-    func calculate() -> String {
-        return "0"
+    func updateOperandResultLabel(_ operand: [String]) {
+        var tempArray = operand
+        while tempArray.count > 8 {
+            tempArray.removeLast()
+        }
+        updateResultLabel(makeStringNumber(operand))
     }
     
-    // TODO: A simple calculate method for integers.
-    //       Modify this one or create your own.
-    func intCalculate(a: Int, b:Int, operation: String) -> Int {
-        print("Calculation requested for \(a) \(operation) \(b)")
-        return 0
+    func decimalPressed(_ operandProvided: [String]) {
+        var operand = operandProvided
+        print(operand)
+        print(operandA)
+        print(operandProvided)
+        if operand.count < 8 && !operand.contains("."){
+            if operand == [] {
+                operand.append("0")
+            }
+            operand.append(".")
+            updateOperandResultLabel(operand)
+        }
     }
+    
+
     
     // TODO: A general calculate method for doubles
     //       Modify this one or create your own.
-    func calculate(a: String, b:String, operation: String) -> Double {
+    func calculate(a: String, b: String, operation: String) -> String {
         print("Calculation requested for \(a) \(operation) \(b)")
-        return 0.0
+        let x = (a as NSString).doubleValue
+        let y = (b as NSString).doubleValue
+        var intResult: Int = 0
+        var result: Double = 0.0
+        var solutionIsInteger = false
+        if operation == "+" {
+            result = x + y
+        } else if operation == "-" {
+            result = x - y
+        } else if operation == "*" {
+            result = x * y
+        } else if operation == "/" {
+            if y == 0{
+                print("Not a number")
+            } else {
+                result = x / y
+            }
+        }
+        
+        solutionIsInteger = (floor(result) == result)
+        
+        if !solutionIsInteger {
+            return String(result)
+        } else if solutionIsInteger {
+            intResult = Int(result)
+            return String(intResult)
+        }
+        return ""
     }
     
     // REQUIRED: The responder to a number button being pressed.
     func numberPressed(_ sender: CustomButton) {
-        guard Int(sender.content) != nil else { return }
+        guard Int(sender.content) != nil                    else { return }
         print("The number \(sender.content) was pressed")
         // Fill me in!
+        
+        if !operationPressed && operandA.count < 7 {
+            operandA.append(sender.content)
+            updateOperandResultLabel(operandA)
+        } else if operationPressed && operandB.count < 7 {
+            operandB.append(sender.content)
+            updateOperandResultLabel(operandB)
+        }
+        print("OperandA: ", operandA)
+        print("OperandB: ", operandB)
+        print("operationPressed: ", operationPressed)
+        print("operation: ", operation)
     }
     
     // REQUIRED: The responder to an operator button being pressed.
     func operatorPressed(_ sender: CustomButton) {
         // Fill me in!
+        var argA: String = ""
+        var argB: String = ""
+        if sender.content == "+/-" {
+            flipSign()
+        } else if sender.content == "C" {
+            clear()
+            operationPressed = false
+            operation = ""
+            updateResultLabel("0")
+        } else if operationPressed == true {
+            print("operation pressed when numbers were in operands")
+            argA = makeStringNumber(operandA)
+            argB = makeStringNumber(operandB)
+            solutionDisplay = makeSolutionArray(calculate(a: argA, b: argB, operation: operation))
+            updateOperandResultLabel(solutionDisplay)
+            operandA = solutionDisplay
+            operandB = []
+        } else if sender.content == "=" && operationPressed == true {
+            argA = makeStringNumber(operandA)
+            argB = makeStringNumber(operandB)
+            solutionDisplay = makeSolutionArray(calculate(a: argA, b: argB, operation: operation))
+            operationPressed = false
+            updateOperandResultLabel(solutionDisplay)
+        }
+        
+        if ["+", "-", "*", "/"].contains(sender.content) {
+            operationPressed = true
+            operation = sender.content
+        }
+        
+        print("OperandA: ", operandA)
+        print("OperandB: ", operandB)
+        print("operationPressed: ", operationPressed)
+        print("operation: ", operation)
     }
     
-    // REQUIRED: The responder to a number or operator button being pressed.
+    // REQUIRED: The responder to a number or operator button being pressed. 0 or decimal pressedf
     func buttonPressed(_ sender: CustomButton) {
-       // Fill me in!
+        if sender.content == "." {
+            if !operationPressed {
+                if operandA.count < 8 && !operandA.contains("."){
+                    if operandA == [] {
+                        operandA.append("0")
+                    }
+                    operandA.append(".")
+                    updateOperandResultLabel(operandA)
+                }
+//                decimalPressed(operandA)
+            } else if operationPressed {
+                if operandB.count < 8 && !operandB.contains("."){
+                    if operandB == [] {
+                        operandB.append("0")
+                    }
+                    operandB.append(".")
+                    updateOperandResultLabel(operandB)
+                }
+//                decimalPressed(operandB)
+            }
+        } else if sender.content == "0" {
+            if !operationPressed {
+                if operandA != [] {
+                    operandA.append("0")
+                    updateOperandResultLabel(operandA)
+                }
+            } else if operationPressed {
+                if operandB != [] {
+                    operandB.append("0")
+                    updateOperandResultLabel(operandB)
+                }
+            }
+        }
+        
+        print("OperandA: ", operandA)
+        print("OperandB: ", operandB)
+        print("operationPressed: ", operationPressed)
+        print("operation: ", operation)
     }
     
     // IMPORTANT: Do NOT change any of the code below.
